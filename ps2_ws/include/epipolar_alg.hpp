@@ -6,7 +6,6 @@
 
 #include <Eigen/Dense> 
 #include <opencv2/opencv.hpp>
-#include <opencv2/core/eigen.hpp>
 
 bool readtxt2vec(const std::string &file, std::vector<Eigen::Vector2d> &vec);
 

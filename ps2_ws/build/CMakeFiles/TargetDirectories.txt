@@ -1,4 +1,0 @@
-/home/euvill/Desktop/cs231a_ws/ps2_ws/build/CMakeFiles/rebuild_cache.dir
-/home/euvill/Desktop/cs231a_ws/ps2_ws/build/CMakeFiles/edit_cache.dir
-/home/euvill/Desktop/cs231a_ws/ps2_ws/build/CMakeFiles/fundamental_matrix.dir
-/home/euvill/Desktop/cs231a_ws/ps2_ws/build/CMakeFiles/image_rectification.dir
