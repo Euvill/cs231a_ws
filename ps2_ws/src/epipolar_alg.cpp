@@ -367,13 +367,6 @@ bool compute_rectified_image(const cv::Mat& img,
     double min_new_y = DBL_MAX;
     double max_new_y = DBL_MIN;
 
-    /*for (int i = 0; i < H.rows(); ++i) {
-        for (int j = 0; j < H.cols(); ++j) {
-            std::cout << H(i, j) << ", ";
-        }
-        std::cout << std::endl;
-    }*/
-
     for (int i = 0; i < img.rows; ++i) {
          for (int j = 0; j < img.cols; ++j) {
             Eigen::Vector3d new_location = H * Eigen::Vector3d(i, j , 1.0);

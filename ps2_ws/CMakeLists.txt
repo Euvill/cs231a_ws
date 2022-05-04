@@ -31,4 +31,6 @@ target_link_libraries(fundamental_matrix ${ALL_TARGET_LIBRARIES})
 add_executable(image_rectification src/apps/image_rectification_app.cpp ${ALL_SRCS})
 target_link_libraries(image_rectification ${ALL_TARGET_LIBRARIES})
 
+add_executable(factorization_method src/apps/factorization_method_app.cpp ${ALL_SRCS})
+target_link_libraries(factorization_method ${ALL_TARGET_LIBRARIES})
 
