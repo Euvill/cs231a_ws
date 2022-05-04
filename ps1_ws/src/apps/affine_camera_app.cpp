@@ -5,7 +5,6 @@
 
 #include <Eigen/Dense> 
 #include <opencv2/opencv.hpp>
-#include <opencv2/core/eigen.hpp>
 
 bool readtxt2vec(const std::string& file, std::vector<Eigen::Vector2d>& vec){
     std::ifstream file_;
@@ -224,6 +223,8 @@ void compute_camera_matrix(const std::vector<Eigen::Vector2d>& front_image_point
 
     camera_matrix = TwoDim_Ts.inverse() * Normalized_PA * ThreeDim_Ts;
 
+    std::cout << "Camera Matrix is: " << std::endl;
+
     for (int i = 0; i < camera_matrix.rows(); ++i) {
         for (int j = 0; j < camera_matrix.cols(); ++j) {
             std::cout << camera_matrix(i, j) << ", ";
@@ -285,9 +286,9 @@ double rms_error(const std::vector<Eigen::Vector2d>& front_image_points,
 
 int main(void) {
 
-    std::string front_image_file = "/home/euvill/Desktop/ps1_ws/data/front_image.txt";
-    std::string back_image_file  = "/home/euvill/Desktop/ps1_ws/data/back_image.txt";
-    std::string real_xy_file     = "/home/euvill/Desktop/ps1_ws/data/real_XY.txt";
+    std::string front_image_file = "../data/front_image.txt";
+    std::string back_image_file  = "../data/back_image.txt";
+    std::string real_xy_file     = "../data/real_XY.txt";
 
     std::vector<Eigen::Vector2d> front_image_points;
     std::vector<Eigen::Vector2d> back_image_points;

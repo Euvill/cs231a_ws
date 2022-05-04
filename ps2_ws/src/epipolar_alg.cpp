@@ -1,5 +1,8 @@
 #include "epipolar_alg.hpp"
 
+#include <math.h>
+#include <limits.h>
+
 bool readtxt2vec(const std::string& file, std::vector<Eigen::Vector2d>& vec){
     std::ifstream file_;
     file_.open(file);
@@ -342,6 +345,8 @@ bool compute_matching_homographies(const Eigen::Vector3d& epipole2,
         std::cout << std::endl;
     }
 
+    std::cout << std::endl;
+
     std::cout << "H2: " << std::endl;
     for (int i = 0; i < H2.rows(); ++i) {
         for (int j = 0; j < H2.cols(); ++j) {
@@ -349,4 +354,66 @@ bool compute_matching_homographies(const Eigen::Vector3d& epipole2,
         }
         std::cout << std::endl;
     }
+}
+
+bool compute_rectified_image(const cv::Mat& img, 
+                             const Eigen::Matrix3d& H, 
+                             cv::Mat& newImage, Eigen::Vector2d& offset) {
+    std::vector<double> new_x;
+    std::vector<double> new_y;
+
+    double min_new_x = DBL_MAX;
+    double max_new_x = DBL_MIN;
+    double min_new_y = DBL_MAX;
+    double max_new_y = DBL_MIN;
+
+    /*for (int i = 0; i < H.rows(); ++i) {
+        for (int j = 0; j < H.cols(); ++j) {
+            std::cout << H(i, j) << ", ";
+        }
+        std::cout << std::endl;
+    }*/
+
+    for (int i = 0; i < img.rows; ++i) {
+         for (int j = 0; j < img.cols; ++j) {
+            Eigen::Vector3d new_location = H * Eigen::Vector3d(i, j , 1.0);
+            new_location = new_location / new_location(2);
+
+            min_new_x = min_new_x > new_location(0) ? new_location(0) : min_new_x;
+            max_new_x = max_new_x < new_location(0) ? new_location(0) : max_new_x;
+
+            min_new_y = min_new_y > new_location(1) ? new_location(1) : min_new_y;
+            max_new_y = max_new_y < new_location(1) ? new_location(1) : max_new_y;
+
+            new_x.push_back(new_location(0));
+            new_y.push_back(new_location(1));
+        }
+    }
+
+    offset(0) = min_new_x;
+    offset(1) = min_new_y;
+
+    for (int i = 0; i < new_x.size(); ++i) {
+        new_x[i] = new_x[i] - offset(0);
+        new_y[i] = new_y[i] - offset(1);
+    }
+
+    Eigen::Vector2d new_dims;
+    new_dims(0) = std::ceil(max_new_y) + 1;
+    new_dims(1) = std::ceil(max_new_x) + 1;
+
+    newImage = cv::Mat::zeros(max_new_y, max_new_x, CV_8UC3);
+
+    for (int i = 0; i < newImage.rows; ++i) {
+        for (int j = 0; j < newImage.cols; ++j) {
+            Eigen::Vector3d old_location = H.inverse() * Eigen::Vector3d(j + offset(0), i + offset(1), 1.0);
+            old_location = old_location / old_location(2);
+            int old_x = int(old_location(0));
+            int old_y = int(old_location(1));
+            if(old_x >= 0 && old_x < img.cols && old_y >= 0 && old_y < img.rows) {
+                newImage.at<cv::Vec3b>(i, j) = img.at<cv::Vec3b>(old_y, old_x);
+            }
+        }
+    }
+    
 }

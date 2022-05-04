@@ -10,7 +10,7 @@ int main(void) {
      * 2D point coordinate(y, x): 473.000000 395.000000
      */
 
-    std::string data_path = "/home/euvill/Desktop/cs231a/ps2_ws/data";
+    std::string data_path = "../data";
 
     std::cout << "--------------------------------------------------------------- " << std::endl;
     std::cout << "-------------------------set1's solved------------------------- " << std::endl;

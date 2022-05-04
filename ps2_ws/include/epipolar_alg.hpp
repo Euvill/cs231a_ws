@@ -37,3 +37,8 @@ bool compute_matching_homographies(const Eigen::Vector3d &epipole2,
                                    const std::vector<Eigen::Vector2d> &pts1,
                                    const std::vector<Eigen::Vector2d> &pts2,
                                    Eigen::Matrix3d &H1, Eigen::Matrix3d &H2);
+
+bool compute_rectified_image(const cv::Mat& img, 
+                             const Eigen::Matrix3d& H, 
+                                   cv::Mat& newImage,
+                                   Eigen::Vector2d& offset); 
