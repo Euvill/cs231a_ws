@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/euvill/Desktop/cs231a/ps2_ws
+CMAKE_SOURCE_DIR = /home/euvill/Desktop/cs231a_ws/ps2_ws
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/euvill/Desktop/cs231a/ps2_ws/build
+CMAKE_BINARY_DIR = /home/euvill/Desktop/cs231a_ws/ps2_ws/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/image_rectification.dir/depend.make
@@ -59,16 +59,16 @@ include CMakeFiles/image_rectification.dir/flags.make
 
 CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.o: CMakeFiles/image_rectification.dir/flags.make
 CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.o: ../src/apps/image_rectification_app.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/euvill/Desktop/cs231a/ps2_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.o"
-	/usr/bin/x86_64-linux-gnu-g++-7  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.o -c /home/euvill/Desktop/cs231a/ps2_ws/src/apps/image_rectification_app.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/euvill/Desktop/cs231a_ws/ps2_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.o -c /home/euvill/Desktop/cs231a_ws/ps2_ws/src/apps/image_rectification_app.cpp
 
 CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.i"
-	/usr/bin/x86_64-linux-gnu-g++-7 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/euvill/Desktop/cs231a/ps2_ws/src/apps/image_rectification_app.cpp > CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/euvill/Desktop/cs231a_ws/ps2_ws/src/apps/image_rectification_app.cpp > CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.i
 
 CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.s"
-	/usr/bin/x86_64-linux-gnu-g++-7 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/euvill/Desktop/cs231a/ps2_ws/src/apps/image_rectification_app.cpp -o CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/euvill/Desktop/cs231a_ws/ps2_ws/src/apps/image_rectification_app.cpp -o CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.s
 
 CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.o.requires:
 
@@ -83,16 +83,16 @@ CMakeFiles/image_rectification.dir/src/apps/image_rectification_app.cpp.o.provid
 
 CMakeFiles/image_rectification.dir/src/epipolar_alg.cpp.o: CMakeFiles/image_rectification.dir/flags.make
 CMakeFiles/image_rectification.dir/src/epipolar_alg.cpp.o: ../src/epipolar_alg.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/euvill/Desktop/cs231a/ps2_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/image_rectification.dir/src/epipolar_alg.cpp.o"
-	/usr/bin/x86_64-linux-gnu-g++-7  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/image_rectification.dir/src/epipolar_alg.cpp.o -c /home/euvill/Desktop/cs231a/ps2_ws/src/epipolar_alg.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/euvill/Desktop/cs231a_ws/ps2_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/image_rectification.dir/src/epipolar_alg.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/image_rectification.dir/src/epipolar_alg.cpp.o -c /home/euvill/Desktop/cs231a_ws/ps2_ws/src/epipolar_alg.cpp
 
 CMakeFiles/image_rectification.dir/src/epipolar_alg.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/image_rectification.dir/src/epipolar_alg.cpp.i"
-	/usr/bin/x86_64-linux-gnu-g++-7 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/euvill/Desktop/cs231a/ps2_ws/src/epipolar_alg.cpp > CMakeFiles/image_rectification.dir/src/epipolar_alg.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/euvill/Desktop/cs231a_ws/ps2_ws/src/epipolar_alg.cpp > CMakeFiles/image_rectification.dir/src/epipolar_alg.cpp.i
 
 CMakeFiles/image_rectification.dir/src/epipolar_alg.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/image_rectification.dir/src/epipolar_alg.cpp.s"
-	/usr/bin/x86_64-linux-gnu-g++-7 $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/euvill/Desktop/cs231a/ps2_ws/src/epipolar_alg.cpp -o CMakeFiles/image_rectification.dir/src/epipolar_alg.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/euvill/Desktop/cs231a_ws/ps2_ws/src/epipolar_alg.cpp -o CMakeFiles/image_rectification.dir/src/epipolar_alg.cpp.s
 
 CMakeFiles/image_rectification.dir/src/epipolar_alg.cpp.o.requires:
 
@@ -135,7 +135,7 @@ image_rectification_EXTERNAL_OBJECTS =
 ../bin/image_rectification: /usr/local/lib/libopencv_imgproc.so.3.4.16
 ../bin/image_rectification: /usr/local/lib/libopencv_core.so.3.4.16
 ../bin/image_rectification: CMakeFiles/image_rectification.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/euvill/Desktop/cs231a/ps2_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable ../bin/image_rectification"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/euvill/Desktop/cs231a_ws/ps2_ws/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable ../bin/image_rectification"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/image_rectification.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -153,6 +153,6 @@ CMakeFiles/image_rectification.dir/clean:
 .PHONY : CMakeFiles/image_rectification.dir/clean
 
 CMakeFiles/image_rectification.dir/depend:
-	cd /home/euvill/Desktop/cs231a/ps2_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/euvill/Desktop/cs231a/ps2_ws /home/euvill/Desktop/cs231a/ps2_ws /home/euvill/Desktop/cs231a/ps2_ws/build /home/euvill/Desktop/cs231a/ps2_ws/build /home/euvill/Desktop/cs231a/ps2_ws/build/CMakeFiles/image_rectification.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/euvill/Desktop/cs231a_ws/ps2_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/euvill/Desktop/cs231a_ws/ps2_ws /home/euvill/Desktop/cs231a_ws/ps2_ws /home/euvill/Desktop/cs231a_ws/ps2_ws/build /home/euvill/Desktop/cs231a_ws/ps2_ws/build /home/euvill/Desktop/cs231a_ws/ps2_ws/build/CMakeFiles/image_rectification.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/image_rectification.dir/depend
 
