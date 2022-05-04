@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/euvill/Desktop/ps0_ws/build",
+  "command": "/usr/bin/c++   -I/usr/local/include/eigen3 -I/home/euvill/Desktop/ps0_ws/include -isystem /usr/local/include -isystem /usr/local/include/opencv  -g   -std=c++14 -std=c++14 -o CMakeFiles/basic_manipulation.dir/src/apps/basic_manipulation_app.cpp.o -c /home/euvill/Desktop/ps0_ws/src/apps/basic_manipulation_app.cpp",
+  "file": "/home/euvill/Desktop/ps0_ws/src/apps/basic_manipulation_app.cpp"
+}
+]
