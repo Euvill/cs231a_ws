@@ -34,3 +34,6 @@ target_link_libraries(image_rectification ${ALL_TARGET_LIBRARIES})
 add_executable(factorization_method src/apps/factorization_method_app.cpp ${ALL_SRCS})
 target_link_libraries(factorization_method ${ALL_TARGET_LIBRARIES})
 
+add_executable(triangulation src/apps/triangulation_app.cpp ${ALL_SRCS})
+target_link_libraries(triangulation ${ALL_TARGET_LIBRARIES})
+

@@ -96,6 +96,7 @@
         "mutex": "cpp",
         "typeindex": "cpp",
         "any": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "core": "cpp"
     }, // 格式化时调整include的顺序（按字母排序）
 }
