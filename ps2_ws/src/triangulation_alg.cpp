@@ -180,25 +180,25 @@ bool estimate_RT_from_E(const Eigen::Matrix3d& E,
     camera_matrices.push_back(tmp3x4);
 
     std::vector<int> count = {0, 0, 0, 0};
-
+    int index = -1;
     for(int i = 0; i < estimated_RT_vec.size(); ++i) {
         Eigen::Matrix<double, 3, 4> RTi = estimated_RT_vec[i];
         Eigen::Matrix<double, 3, 4> M2i = K * RTi;
         camera_matrices[1] = M2i;
-        for(int j = 0; j < image_points.rows(); j = j + 2) {
+        for(int j = 0; j < image_points.rows(); j += 2) {
             Eigen::Vector3d pointj_3d;
             nonlinear_estimate_3d_point(image_points.block<2, 2>(j, 0), camera_matrices, pointj_3d);
             Eigen::Vector4d pointj_3d_homo = Eigen::Vector4d(pointj_3d(0), pointj_3d(1), pointj_3d(2), 1.0);
             Eigen::Vector3d pointj_prime = camera1tocamera2(pointj_3d_homo, RTi);
             if(pointj_3d_homo(2) > 0 && pointj_prime(2) > 0) {
-                count[i] += 1;
+                index = i;
             }
         }
+        if(index != -1)
+            break;
     }
 
-    int maxIndex = std::max_element(count.begin(), count.end()) - count.begin(); 
-
-    estimated_RT = estimated_RT_vec[maxIndex];
+    estimated_RT = estimated_RT_vec[index];
 
     return true;
 }
