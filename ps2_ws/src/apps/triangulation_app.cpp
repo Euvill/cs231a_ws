@@ -52,7 +52,7 @@ void data_loaded(void) {
               3.23134307e-06,  6.38757150e-08,  5.80151966e-03,
              -1.27135584e-03, -5.48838112e-03,  7.93359941e-02;
     Eigen::Matrix3d f_tmp4;
-    f_tmp3 << -2.66322904e-08,  3.22928035e-07, -1.79473476e-04,
+    f_tmp4 << -2.66322904e-08,  3.22928035e-07, -1.79473476e-04,
                1.98701325e-06, -4.02694866e-07,  6.93923582e-03,
               -5.76424460e-04, -7.13155017e-03, -3.92654749e-02;
     fundamental_matrices.push_back(f_tmp1);
@@ -122,6 +122,11 @@ void data_loaded(void) {
                         str.push_back(tmp[i]);
                     }
                 }
+            }
+
+            if(str.size() != 0) {
+                number.push_back(std::stod(str));
+                str.clear();
             }
     
             if (flag_find_one_row) {

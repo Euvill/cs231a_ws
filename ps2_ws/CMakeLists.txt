@@ -20,6 +20,8 @@ find_package(OpenCV 3.4.16 REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 list(APPEND ALL_TARGET_LIBRARIES ${OpenCV_LIBRARIES})
 
+include(cmake/ceres.cmake)
+
 file(GLOB_RECURSE ALL_SRCS "${PROJECT_SOURCE_DIR}/*.cpp")
 file(GLOB_RECURSE NODE_SRCS "${PROJECT_SOURCE_DIR}/src/apps/*_app.cpp")
 file(GLOB_RECURSE COMPILE_SRCS "${PROJECT_SOURCE_DIR}/*CompilerId.cpp")
@@ -36,4 +38,7 @@ target_link_libraries(factorization_method ${ALL_TARGET_LIBRARIES})
 
 add_executable(triangulation src/apps/triangulation_app.cpp ${ALL_SRCS})
 target_link_libraries(triangulation ${ALL_TARGET_LIBRARIES})
+
+add_executable(sfm_pipeline src/apps/sfm_pipeline_app.cpp ${ALL_SRCS})
+target_link_libraries(sfm_pipeline ${ALL_TARGET_LIBRARIES})
 
