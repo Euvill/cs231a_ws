@@ -1,9 +1,20 @@
 #include <iostream>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
 
+#include <pcl/visualization/cloud_viewer.h>
+#include <pcl/visualization/pcl_visualizer.h>
+
+#include "SnavelyReprojectionError.h"
 #include "sfm_pipeline.hpp"
 
 std::vector<Eigen::Matrix3d> fundamental_matrices;
 std::vector<Eigen::MatrixXd> matches_subset;
+
+std::deque<std::vector<Eigen::Matrix<double, 3, 4>>> frames_motion;
+std::vector<std::shared_ptr<double>> camera_parameter;
+
+std::vector<Frame> frames;
 
 double focal_length = 719.5459;
 
@@ -102,22 +113,78 @@ void data_loaded(void) {
 }
 
 int main(void) {
-    
+
+    std::cout << "Load data ..." << std::endl;
+
     data_loaded();
 
-    std::vector<Frame> frames;
+    std::cout << "Load data success!" << std::endl;
 
     int N = matches_subset.size();
 
-    for (int i = 0; i < N; ++i) {
-        
-        Frame frame(matches_subset[i], focal_length, fundamental_matrices[i], 480, 640);
+    int point3d_size = 0;
 
-        bundle_adjustment(frame);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+
+    std::cout << "Begin to process frames ..." << std::endl;
+
+    for (int i = 0; i < N; ++i) {
+        Frame frame(matches_subset[i], focal_length, fundamental_matrices[i], 480, 640, i);
 
         frames.push_back(frame);
 
-    }
-    
+        point3d_size += frame.structure_.size();
 
+        ceres::Problem problem;
+
+        for (int j = 0; j < frame.match_points_.size(); ++j) {
+
+            ceres::CostFunction *cost_function;
+
+            cost_function = SnavelyReprojectionError::Create(frame.match_points_[j](0), frame.match_points_[j](1));
+
+            ceres::LossFunction *loss_function = new ceres::HuberLoss(1.0);
+
+            double *camera = camera_parameter[i].get();
+
+            double *point3d = new double[3];
+            memcpy(point3d, &frame.structure_[0], 3 * sizeof(double));
+
+            problem.AddResidualBlock(cost_function, loss_function, camera, point3d);
+        }
+    }
+
+    std::cout << "Frames processed!" << std::endl;
+
+    cloud->width  = point3d_size;
+    cloud->height = 1;
+    cloud->points.resize(cloud->width * cloud->height);
+
+    int index = 0;
+
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < frames[i].structure_.size(); ++j) {
+
+            cloud->points[index].x = frames[i].structure_[j][0];
+            cloud->points[index].y = frames[i].structure_[j][1];
+            cloud->points[index].z = frames[i].structure_[j][2];
+
+            index = index + 1;
+        }
+    }
+
+    std::cout << "Visualization." << std::endl;
+
+	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("Visualizer_Viewer")); 
+	viewer->addPointCloud<pcl::PointXYZ>(cloud, "sample_cloud");		
+
+    viewer->setBackgroundColor(0, 0, 0);		//窗口背景色，默认[0,0,0]，范围[0~255,0~255,0~255]
+	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample_cloud");			//设置点的大小，默认 1
+	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 1, 1, "sample_cloud");	//设置点云显示的颜色，rgb 在 [0,1] 范围
+
+	while (!viewer->wasStopped())
+	{
+		viewer->spinOnce(100);
+		boost::this_thread::sleep(boost::posix_time::microseconds(100000));
+	}
 }

@@ -20,7 +20,14 @@ find_package(OpenCV 3.4.16 REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 list(APPEND ALL_TARGET_LIBRARIES ${OpenCV_LIBRARIES})
 
+find_package(PCL 1.7 REQUIRED)
+list(REMOVE_ITEM PCL_LIBRARIES "vtkproj4")
+
+include_directories(${PCL_INCLUDE_DIRS})
+list(APPEND ALL_TARGET_LIBRARIES ${PCL_LIBRARIES})
+
 include(cmake/ceres.cmake)
+
 
 file(GLOB_RECURSE ALL_SRCS "${PROJECT_SOURCE_DIR}/*.cpp")
 file(GLOB_RECURSE NODE_SRCS "${PROJECT_SOURCE_DIR}/src/apps/*_app.cpp")

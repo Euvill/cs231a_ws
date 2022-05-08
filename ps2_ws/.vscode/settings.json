@@ -97,6 +97,8 @@
         "typeindex": "cpp",
         "any": "cpp",
         "regex": "cpp",
-        "core": "cpp"
+        "core": "cpp",
+        "*.ipp": "cpp",
+        "*.inc": "cpp"
     }, // 格式化时调整include的顺序（按字母排序）
 }

@@ -17,10 +17,9 @@ np.savetxt('fundamental_matrices.txt', fundamental_matrices, fmt='%s')
 matches_subset = np.load('/home/euvill/Desktop/cs231a_ws/ps2_ws/data/statue/matches_subset.npy')[0, :]  
 np.savetxt('matches_subset.txt', matches_subset, fmt='%s', newline='\n')
 
-
-#dense_matches = np.load('/home/euvill/Desktop/cs231a_ws/ps2_ws/data/statue/dense_matches.npy') 
-#np.savetxt('dense_matches.txt', dense_matches, fmt='%s')
-#print(dense_matches)
+dense_matches = np.load('/home/euvill/Desktop/cs231a_ws/ps2_ws/data/statue/dense_matches.npy')
+np.savetxt('dense_matches.txt', dense_matches, fmt='%s', newline='\n')
+print(dense_matches)
 
 #copy_dense_matches = np.load('/home/euvill/Desktop/cs231a_ws/ps2_ws/data/statue/copy_dense_matches.npy')  
 #np.savetxt('copy_dense_matches.txt', copy_dense_matches, fmt='%0.18f')
