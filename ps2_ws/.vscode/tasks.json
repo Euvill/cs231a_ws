@@ -43,7 +43,7 @@
                 "isDefault": true
             },
             "type": "shell",
-            "command": "make",
+            "command": "make -j16",
             "args": []
         }
     ]

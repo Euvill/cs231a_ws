@@ -8,7 +8,7 @@
             "name": "(gdb) 启动",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bin/triangulation",
+            "program": "${workspaceFolder}/bin/sfm_pipeline",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

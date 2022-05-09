@@ -40,8 +40,8 @@ public:
         p[2] += camera[5];
 
         // Compute the center fo distortion
-        T xp = -p[0] / p[2];
-        T yp = -p[1] / p[2];
+        T xp = p[0] / p[2];
+        T yp = p[1] / p[2];
 
         // Apply second and fourth order radial distortion
         const T &l1 = camera[7];

@@ -66,6 +66,7 @@
         "core": "cpp",
         "specialfunctions": "cpp",
         "climits": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "*.inc": "cpp"
     }
 }

@@ -5,14 +5,10 @@
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
-#include "SnavelyReprojectionError.h"
 #include "sfm_pipeline.hpp"
 
 std::vector<Eigen::Matrix3d> fundamental_matrices;
 std::vector<Eigen::MatrixXd> matches_subset;
-
-std::deque<std::vector<Eigen::Matrix<double, 3, 4>>> frames_motion;
-std::vector<std::shared_ptr<double>> camera_parameter;
 
 std::vector<Frame> frames;
 
@@ -131,32 +127,49 @@ int main(void) {
     for (int i = 0; i < N; ++i) {
         Frame frame(matches_subset[i], focal_length, fundamental_matrices[i], 480, 640, i);
 
-        frames.push_back(frame);
-
         point3d_size += frame.structure_.size();
 
-        ceres::Problem problem;
+        bundle_adjustment(frame, false);
 
-        for (int j = 0; j < frame.match_points_.size(); ++j) {
+        CamToRtMatrix(camera_parameter[i], frame.motion_[0]);
+        CamToRtMatrix(camera_parameter[i + 1], frame.motion_[1]);
 
-            ceres::CostFunction *cost_function;
-
-            cost_function = SnavelyReprojectionError::Create(frame.match_points_[j](0), frame.match_points_[j](1));
-
-            ceres::LossFunction *loss_function = new ceres::HuberLoss(1.0);
-
-            double *camera = camera_parameter[i].get();
-
-            double *point3d = new double[3];
-            memcpy(point3d, &frame.structure_[0], 3 * sizeof(double));
-
-            problem.AddResidualBlock(cost_function, loss_function, camera, point3d);
+        frames.push_back(frame);
+        
+        /*std::cout << "frame" << i << std::endl;
+        
+        for (int k = 0; k < frame.motion_.size(); ++k) {
+            for (int i = 0; i < frame.motion_[k].rows(); ++i) {
+                for (int j = 0; j < frame.motion_[k].cols(); ++j) {
+                    std::cout << frame.motion_[k](i, j) << ", ";
+                }
+                std::cout << std::endl;
+            }
+            std::cout << std::endl;  
         }
+        */
     }
+
+    std::vector<Eigen::Matrix4d> cam_RTs;
+    cam_RTs.push_back(Eigen::Matrix4d::Identity());
+    for (int i = 0; i < N; ++i) {
+        cam_RTs.push_back(cam_RTs[i] * frames[i].motion_[0] * frames[i].motion_[1]);
+    }
+  
+    for (int k = 0; k < cam_RTs.size(); ++k) {
+        for (int i = 0; i < cam_RTs[k].rows(); ++i) {
+            for (int j = 0; j < cam_RTs[k].cols(); ++j) {
+                std::cout << cam_RTs[k](i, j) << ", ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << std::endl;  
+    }
+
 
     std::cout << "Frames processed!" << std::endl;
 
-    cloud->width  = point3d_size;
+    /*cloud->width  = point3d_size;
     cloud->height = 1;
     cloud->points.resize(cloud->width * cloud->height);
 
@@ -186,5 +199,5 @@ int main(void) {
 	{
 		viewer->spinOnce(100);
 		boost::this_thread::sleep(boost::posix_time::microseconds(100000));
-	}
+	}*/
 }
