@@ -38,7 +38,7 @@ void data_loaded(void) {
     fundamental_matrices.push_back(f_tmp4);
 
     std::ifstream file_;
-    file_.open("/home/euvill/Desktop/cs231a_ws/ps2_ws/data/statue/matches_subset.txt");
+    file_.open("/home/euvill/Desktop/cs231a_ws/ps2_ws/data/statue/dense_matches.txt");
     std::string tmp;
     int index = 0;
 
@@ -120,8 +120,6 @@ int main(void) {
 
     int point3d_size = 0;
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-
     std::cout << "Begin to process frames ..." << std::endl;
 
     for (int i = 0; i < N; ++i) {
@@ -129,34 +127,84 @@ int main(void) {
 
         point3d_size += frame.structure_.size();
 
-        bundle_adjustment(frame, false);
+        /*bundle_adjustment(frame, false);
 
         CamToRtMatrix(camera_parameter[i], frame.motion_[0]);
-        CamToRtMatrix(camera_parameter[i + 1], frame.motion_[1]);
+        CamToRtMatrix(camera_parameter[i + 1], frame.motion_[1]);*/
 
         frames.push_back(frame);
-        
-        /*std::cout << "frame" << i << std::endl;
-        
-        for (int k = 0; k < frame.motion_.size(); ++k) {
-            for (int i = 0; i < frame.motion_[k].rows(); ++i) {
-                for (int j = 0; j < frame.motion_[k].cols(); ++j) {
-                    std::cout << frame.motion_[k](i, j) << ", ";
-                }
-                std::cout << std::endl;
-            }
-            std::cout << std::endl;  
-        }
-        */
     }
+    //camera_parameter.clear();
 
     std::vector<Eigen::Matrix4d> cam_RTs;
     cam_RTs.push_back(Eigen::Matrix4d::Identity());
     for (int i = 0; i < N; ++i) {
         cam_RTs.push_back(cam_RTs[i] * frames[i].motion_[0] * frames[i].motion_[1]);
+        RtMatrixToCam(cam_RTs[i], focal_length, 0 , 0);
     }
-  
-    for (int k = 0; k < cam_RTs.size(); ++k) {
+    RtMatrixToCam(cam_RTs[N], focal_length, 0 , 0);
+
+    for (int i = 0; i < N; ++i) {
+        frames[i].motion_[0] = cam_RTs[i];
+        frames[i].motion_[1] = cam_RTs[i + 1];
+        frames[i].structure_.clear();
+        triangulate(frames[i].motion_, frames[i].match_points_, frames[i].K_, frames[i].structure_);
+    }    
+
+    ceres::Problem problem;
+
+    for (int k = 0; k < frames.size(); ++k) {
+
+        for (int i = 0; i < frames[k].camera_index_.size(); ++i){
+            
+            for (int j = 0; j < frames[k].match_points_.size(); ++j) {
+
+                ceres::CostFunction *cost_function;
+
+                cost_function = SnavelyReprojectionError::Create(frames[k].match_points_[j][2 * i + 0], 
+                                                                 frames[k].match_points_[j][2 * i + 1]);
+
+                ceres::LossFunction *loss_function = new ceres::HuberLoss(1.0);
+
+                double *camera = camera_parameter[frames[k].camera_index_[i]].get();
+
+                double *point3d = new double[3];
+                memcpy(point3d, &frames[k].structure_[j][0], 3 * sizeof(double));
+
+                problem.AddResidualBlock(cost_function, loss_function, camera, point3d);
+            }
+        }
+    }
+
+    ceres::Solver::Options options;
+    options.logging_type = ceres::SILENT;
+    
+    options.linear_solver_type = ceres::LinearSolverType::SPARSE_SCHUR;
+    options.minimizer_progress_to_stdout = true;
+    ceres::Solver::Summary summary;
+    ceres::Solve(options, &problem, &summary);
+    std::cout << summary.FullReport() << "\n"; 
+    
+    for (int m = 0; m < N; ++m) {
+        CamToRtMatrix(camera_parameter[m],   frames[m].motion_[0]);
+        CamToRtMatrix(camera_parameter[m+1], frames[m].motion_[1]);
+    }
+
+    std::cout << "Frames processed!" << std::endl;
+ 
+    /*for (int m = 0; m < N; ++m) {
+        for (int k = 0; k < frames[m].motion_.size(); ++k) {
+            for (int i = 0; i < frames[m].motion_[k].rows(); ++i) {
+                for (int j = 0; j < frames[m].motion_[k].cols(); ++j) {
+                    std::cout << frames[m].motion_[k](i, j) << ", ";
+                }
+                std::cout << std::endl;
+            }
+            std::cout << std::endl;  
+        }
+    }
+
+      for (int k = 0; k < cam_RTs.size(); ++k) {
         for (int i = 0; i < cam_RTs[k].rows(); ++i) {
             for (int j = 0; j < cam_RTs[k].cols(); ++j) {
                 std::cout << cam_RTs[k](i, j) << ", ";
@@ -164,14 +212,15 @@ int main(void) {
             std::cout << std::endl;
         }
         std::cout << std::endl;  
-    }
+    }*/
 
-
-    std::cout << "Frames processed!" << std::endl;
-
-    /*cloud->width  = point3d_size;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+    
+    cloud->width  = point3d_size;
     cloud->height = 1;
     cloud->points.resize(cloud->width * cloud->height);
+
+    std::cout << "point3d_size: " << point3d_size << std::endl;
 
     int index = 0;
 
@@ -181,6 +230,11 @@ int main(void) {
             cloud->points[index].x = frames[i].structure_[j][0];
             cloud->points[index].y = frames[i].structure_[j][1];
             cloud->points[index].z = frames[i].structure_[j][2];
+
+            std::cout << index << ", "
+                      << cloud->points[index].x << ", "
+                      << cloud->points[index].y << ", "
+                      << cloud->points[index].z << std::endl;
 
             index = index + 1;
         }
@@ -199,5 +253,5 @@ int main(void) {
 	{
 		viewer->spinOnce(100);
 		boost::this_thread::sleep(boost::posix_time::microseconds(100000));
-	}*/
+	}
 }
