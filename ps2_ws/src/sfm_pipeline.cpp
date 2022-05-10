@@ -16,11 +16,8 @@ bool triangulate(const std::vector<Eigen::Matrix4d>& motion,
         Eigen::Matrix<double, 3, 4> tmp = K * motion[i].block<3, 4>(0, 0);
         all_camera_matrices.push_back(tmp);
     }
-    
 
     for (int i = 0; i < num_points; ++i) {
-
-        //std::cout << "1" << std::endl;
 
         std::vector<double> rows_points = match_points[i];
 
@@ -47,15 +44,10 @@ bool triangulate(const std::vector<Eigen::Matrix4d>& motion,
             image_points.block<1, 2>(j, 0) = Eigen::Vector2d(match_points[i][valid_indexes[2 * j]], match_points[i][valid_indexes[2 * j + 1]]).transpose();
         }
 
-        //std::cout << "2" << std::endl;
-
-        //std::cout << image_points.rows() << ", " << image_points.cols() << std::endl;
 
         Eigen::Vector3d estimated_3d_point;
 
         nonlinear_estimate_3d_point(image_points, valid_camera_matrices, estimated_3d_point);
-
-        //std::cout << "3" << std::endl;
 
         std::vector<double> tmp{estimated_3d_point(0), estimated_3d_point(1), estimated_3d_point(2)};
         structure.push_back(tmp);
@@ -177,54 +169,76 @@ bool CamToRtMatrix(std::shared_ptr<double> cam, Eigen::Matrix4d& RT) {
     RT.block<3, 1>(0, 3) = Eigen::Vector3d(cam.get()[3], cam.get()[4], cam.get()[5]);
 }
 
-bool merged_two_frames(Frame& frame_0, Frame& frame_1) {
-     // 1. motion 融合
-  /*  frames[0].motion_[0] = cam_RTs[0];
-    frames[0].motion_[1] = cam_RTs[1];
-    frames[0].motion_.push_back(cam_RTs[2]);
-    frames[0].camera_index_.push_back(2);
-    // 2. match point 融合
-    std::unordered_set<int> hash_set;
-    for (int i = 0; i < frames[0].match_points_.size(); ++i) {
-        bool con_point = false;
-        for (int j = 0; j < frames[1].match_points_.size(); ++j) {
-            double diff_x = frames[0].match_points_[i][3] - frames[1].match_points_[j][0];
-            double diff_y = frames[0].match_points_[i][4] - frames[1].match_points_[j][1];
-            double tmp = sqrt(pow(diff_x, 2.0) + pow(diff_y, 2.0));
-            if (tmp < 0.01){ // 认为是共视点
-                frames[0].match_points_[i].push_back(frames[1].match_points_[j][0]);
-                frames[0].match_points_[i].push_back(frames[1].match_points_[j][1]);
-                frames[0].match_points_[i].push_back(frames[1].match_points_[j][2]);
-                frames[0].match_points_[i].push_back(frames[1].match_points_[j][3]);
-                hash_set.emplace(j);
-                con_point = true;
+bool merged_frames(std::vector<Frame>& frames, const std::vector<Eigen::Matrix4d>& cam_RTs) {
+
+    int N = frames.size();
+
+    for (int index = 1; index < N; ++index) {
+        
+        std::cout << "Begin to merged the " << index - 1 << ", " << index << " frame..." << std::endl;
+
+        // 1. motion merged
+        if (index == 1) {
+            frames[0].motion_[0] = cam_RTs[0];
+            frames[0].motion_[1] = cam_RTs[1];
+        }
+        frames[0].motion_.push_back(cam_RTs[index + 1]);
+        frames[0].camera_index_.push_back(index + 1);
+
+        // 2. match point merged
+        std::unordered_set<int> hash_set;
+        for (int i = 0; i < frames[0].match_points_.size(); ++i) {
+            bool con_point = false;
+            for (int j = 0; j < frames[index].match_points_.size(); ++j) {
+                double diff_x = frames[0].match_points_[i][2 * index + 0] - frames[index].match_points_[j][0];
+                double diff_y = frames[0].match_points_[i][2 * index + 1] - frames[index].match_points_[j][1];
+                double tmp = fabs(diff_x) + fabs(diff_y);
+                if (tmp < 0.01) { 
+                    frames[0].match_points_[i].push_back(frames[index].match_points_[j][2]);
+                    frames[0].match_points_[i].push_back(frames[index].match_points_[j][3]);
+                    hash_set.emplace(j);
+                    con_point = true;
+                    break;
+                }
+            }
+            if (!con_point) {
+                frames[0].match_points_[i].push_back(non_pix);
+                frames[0].match_points_[i].push_back(non_pix);
             }
         }
-        if(!con_point){
-            frames[0].match_points_[i].push_back(non_pix);
-            frames[0].match_points_[i].push_back(non_pix);
-            frames[0].match_points_[i].push_back(non_pix);
-            frames[0].match_points_[i].push_back(non_pix);
+        for (int i = 0; i < frames[index].match_points_.size(); ++i) {
+            if(hash_set.count(i) == 0) {
+                std::vector<double> match_points;
+                for (int j = 0; j < index * 2; ++j)
+                    match_points.push_back(non_pix);
+                match_points.push_back(frames[index].match_points_[i][0]);
+                match_points.push_back(frames[index].match_points_[i][1]);
+                match_points.push_back(frames[index].match_points_[i][2]);
+                match_points.push_back(frames[index].match_points_[i][3]);
+                frames[0].match_points_.push_back(match_points);
+            }
         }
+        // 3. triangulate
+        frames[0].structure_.clear();
+        triangulate(frames[0].motion_, frames[0].match_points_, frames[0].K_, frames[0].structure_);
+        bundle_adjustment(frames[0], true);
+
+        // 4. update motion
+        for (int i = 0; i < index + 2; ++i)
+            CamToRtMatrix(camera_parameter[i], frames[0].motion_[i]);
+
+        std::cout << "End to merged the " << index - 1 << ", " << index << " frame..." << std::endl;
     }
-    for (int i = 0; i < frames[1].match_points_.size(); ++i) {
-        if(hash_set.count(i) == 0) {
-            std::vector<double> match_points;
-            match_points.push_back(non_pix);
-            match_points.push_back(non_pix);
-            match_points.push_back(frames[1].match_points_[i][0]);
-            match_points.push_back(frames[1].match_points_[i][1]);
-            match_points.push_back(frames[1].match_points_[i][2]);
-            match_points.push_back(frames[1].match_points_[i][3]);
-            frames[0].match_points_.push_back(match_points);
-        }
-    }
-    // 3. 重新三角化
-    frames[0].structure_.clear();
-    triangulate(frames[0].motion_, frames[0].match_points_, frames[0].K_, frames[0].structure_);
-    bundle_adjustment(frames[0], true);
-    // 4. 更新 motion
-    CamToRtMatrix(camera_parameter[0], frames[0].motion_[0]);
-    CamToRtMatrix(camera_parameter[1], frames[0].motion_[1]);
-    CamToRtMatrix(camera_parameter[2], frames[0].motion_[2]);*/
+
+        /*for (int k = 0; k < frames[0].motion_.size(); ++k) {
+            for (int i = 0; i < frames[0].motion_[k].rows(); ++i) {
+                for (int j = 0; j < frames[0].motion_[k].cols(); ++j) {
+                    std::cout << frames[0].motion_[k](i, j) << ", ";
+                }
+                std::cout << std::endl;
+            }
+            std::cout << std::endl;  
+        }*/
+
+    return true;
 }

@@ -2,6 +2,7 @@
 #include <unordered_set>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
+#include <pcl/filters/voxel_grid.h>
 
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -10,10 +11,83 @@
 
 std::vector<Eigen::Matrix3d> fundamental_matrices;
 std::vector<Eigen::MatrixXd> matches_subset;
+std::vector<Eigen::MatrixXd> matches_fullset;
 
 std::vector<Frame> frames;
 
 double focal_length = 719.5459;
+
+void load_point_txt(const std::string& str, std::vector<Eigen::MatrixXd>& matches_set) {
+    std::ifstream file_;
+    file_.open(str);
+    std::string tmp;
+    int index = 0;
+
+    while (std::getline(file_, tmp)) {
+        static bool flag_find_one_row = false;
+        static std::vector<double> number;
+        static int row_index = 0;
+        static bool flag_resize = false;
+        if (tmp == "begin") {
+            row_index = 0;
+            number.clear();
+            flag_find_one_row = false;
+
+            Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> tmp_zero;
+            matches_set.push_back(tmp_zero);
+
+            flag_resize = true;
+        }
+        else if (tmp == "end")
+        {
+            index = index + 1;
+        }
+        else
+        {
+            std::string str;
+            for (int i = 0; i < tmp.size(); ++i) {
+                if (tmp[i] == '[') {
+                    flag_find_one_row = false;
+                }else if (tmp[i] == ']') {
+                    flag_find_one_row = true;
+                    if(str.size() != 0) {
+                        number.push_back(std::stod(str));
+                        str.clear();
+                    }
+                    if(flag_resize) {
+                        matches_set[index].resize(4, number.size());
+                        flag_resize = false;
+                    }
+                }else {
+                    if(tmp[i] == ' ') {
+                        if(str.size() != 0) {
+                            number.push_back(std::stod(str));
+                            str.clear();
+                        }
+                    }else {
+                        str.push_back(tmp[i]);
+                    }
+                }
+            }
+
+            if(str.size() != 0) {
+                number.push_back(std::stod(str));
+                str.clear();
+            }
+    
+            if (flag_find_one_row) {
+                for (int i = 0; i < matches_set[index].cols(); ++i) {
+                    matches_set[index](row_index ,i) = number[i];
+                }
+                number.clear();
+                row_index = row_index + 1;
+                flag_find_one_row = false;
+            }
+        }
+    }
+
+    file_.close();
+}
 
 void data_loaded(void) {
 
@@ -38,75 +112,9 @@ void data_loaded(void) {
     fundamental_matrices.push_back(f_tmp3);
     fundamental_matrices.push_back(f_tmp4);
 
-    std::ifstream file_;
-    file_.open("/home/euvill/Desktop/cs231a_ws/ps2_ws/data/statue/dense_matches.txt");
-    std::string tmp;
-    int index = 0;
-
-    while (std::getline(file_, tmp)) {
-        static bool flag_find_one_row = false;
-        static std::vector<double> number;
-        static int row_index = 0;
-        static bool flag_resize = false;
-        if (tmp == "begin") {
-            row_index = 0;
-            number.clear();
-            flag_find_one_row = false;
-
-            Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> tmp_zero;
-            matches_subset.push_back(tmp_zero);
-
-            flag_resize = true;
-        }
-        else if (tmp == "end")
-        {
-            index = index + 1;
-        }
-        else
-        {
-            std::string str;
-            for (int i = 0; i < tmp.size(); ++i) {
-                if (tmp[i] == '[') {
-                    flag_find_one_row = false;
-                }else if (tmp[i] == ']') {
-                    flag_find_one_row = true;
-                    if(str.size() != 0) {
-                        number.push_back(std::stod(str));
-                        str.clear();
-                    }
-                    if(flag_resize) {
-                        matches_subset[index].resize(4, number.size());
-                        flag_resize = false;
-                    }
-                }else {
-                    if(tmp[i] == ' ') {
-                        if(str.size() != 0) {
-                            number.push_back(std::stod(str));
-                            str.clear();
-                        }
-                    }else {
-                        str.push_back(tmp[i]);
-                    }
-                }
-            }
-
-            if(str.size() != 0) {
-                number.push_back(std::stod(str));
-                str.clear();
-            }
-    
-            if (flag_find_one_row) {
-                for (int i = 0; i < matches_subset[index].cols(); ++i) {
-                    matches_subset[index](row_index ,i) = number[i];
-                }
-                number.clear();
-                row_index = row_index + 1;
-                flag_find_one_row = false;
-            }
-        }
-    }
-
-    file_.close();
+    load_point_txt("/home/euvill/Desktop/cs231a_ws/ps2_ws/data/statue/matches_subset.txt", matches_subset);
+    load_point_txt("/home/euvill/Desktop/cs231a_ws/ps2_ws/data/statue/dense_matches.txt", matches_fullset);
+   
 }
 
 int main(void) {
@@ -141,186 +149,75 @@ int main(void) {
     }
     RtMatrixToCam(cam_RTs[N], focal_length, 0 , 0);
 
-    // 1. motion 融合
-    frames[0].motion_[0] = cam_RTs[0];
-    frames[0].motion_[1] = cam_RTs[1];
-    frames[0].motion_.push_back(cam_RTs[2]);
-    frames[0].camera_index_.push_back(2);
-    // 2. match point 融合
-    std::unordered_set<int> hash_set;
-    for (int i = 0; i < frames[0].match_points_.size(); ++i) {
-        bool con_point = false;
-        for (int j = 0; j < frames[1].match_points_.size(); ++j) {
-            double diff_x = frames[0].match_points_[i][2] - frames[1].match_points_[j][0];
-            double diff_y = frames[0].match_points_[i][3] - frames[1].match_points_[j][1];
-            double tmp = sqrt(pow(diff_x, 2.0) + pow(diff_y, 2.0));
-            if (tmp < 0.01) { // 认为是共视点
-                frames[0].match_points_[i].push_back(frames[1].match_points_[j][2]);
-                frames[0].match_points_[i].push_back(frames[1].match_points_[j][3]);
-                hash_set.emplace(j);
-                con_point = true;
-                break;
+    merged_frames(frames, cam_RTs);
+
+    frames[0].match_points_.clear();
+
+    std::cout << "Full set processing..." << std::endl;
+
+    for (int index = 0; index < N; ++index) {
+
+        if (index == 0) {
+            for (int j = 0; j < matches_fullset[index].cols(); ++j) {
+                std::vector<double> tmp{matches_fullset[index](0, j), 
+                                        matches_fullset[index](1, j), 
+                                        matches_fullset[index](2, j), 
+                                        matches_fullset[index](3, j)};
+                frames[0].match_points_.push_back(tmp);
             }
-        }
-        if (!con_point) {
-            frames[0].match_points_[i].push_back(non_pix);
-            frames[0].match_points_[i].push_back(non_pix);
-        }
-    }
-    for (int i = 0; i < frames[1].match_points_.size(); ++i) {
-        if(hash_set.count(i) == 0) {
-            std::vector<double> match_points;
-            match_points.push_back(non_pix);
-            match_points.push_back(non_pix);
-            match_points.push_back(frames[1].match_points_[i][0]);
-            match_points.push_back(frames[1].match_points_[i][1]);
-            match_points.push_back(frames[1].match_points_[i][2]);
-            match_points.push_back(frames[1].match_points_[i][3]);
-            frames[0].match_points_.push_back(match_points);
-        }
-    }
-    // 3. 重新三角化
-    frames[0].structure_.clear();
-    triangulate(frames[0].motion_, frames[0].match_points_, frames[0].K_, frames[0].structure_);
-   
-    bundle_adjustment(frames[0], true);
-    // 4. 更新 motion
-    CamToRtMatrix(camera_parameter[0], frames[0].motion_[0]);
-    CamToRtMatrix(camera_parameter[1], frames[0].motion_[1]);
-    CamToRtMatrix(camera_parameter[2], frames[0].motion_[2]);
-
-
-    // 1. motion 融合
-    frames[0].motion_.push_back(cam_RTs[3]);
-    frames[0].camera_index_.push_back(3);
-    // 2. match point 融合
-    std::unordered_set<int> hash_set1;
-    for (int i = 0; i < frames[0].match_points_.size(); ++i) {
-        bool con_point = false;
-        for (int j = 0; j < frames[2].match_points_.size(); ++j) {
-            double diff_x = frames[0].match_points_[i][4] - frames[2].match_points_[j][0];
-            double diff_y = frames[0].match_points_[i][5] - frames[2].match_points_[j][1];
-            double tmp = sqrt(pow(diff_x, 2.0) + pow(diff_y, 2.0));
-            if (tmp < 0.01) { // 认为是共视点
-                frames[0].match_points_[i].push_back(frames[2].match_points_[j][2]);
-                frames[0].match_points_[i].push_back(frames[2].match_points_[j][3]);
-                hash_set1.emplace(j);
-                con_point = true;
-                break;
+        } else {
+            std::vector<std::vector<double>> match_points_;
+            for (int j = 0; j < matches_fullset[index].cols(); ++j) {
+                std::vector<double> tmp{matches_fullset[index](0, j), 
+                                        matches_fullset[index](1, j), 
+                                        matches_fullset[index](2, j), 
+                                        matches_fullset[index](3, j)};
+                match_points_.push_back(tmp);
             }
-        }
-        if (!con_point) {
-            frames[0].match_points_[i].push_back(non_pix);
-            frames[0].match_points_[i].push_back(non_pix);
-        }
-    }
 
-    for (int i = 0; i < frames[2].match_points_.size(); ++i) {
-        if(hash_set1.count(i) == 0) {
-            std::vector<double> match_points;
-            match_points.push_back(non_pix);
-            match_points.push_back(non_pix);
-            match_points.push_back(non_pix);
-            match_points.push_back(non_pix);
-            match_points.push_back(frames[2].match_points_[i][0]);
-            match_points.push_back(frames[2].match_points_[i][1]);
-            match_points.push_back(frames[2].match_points_[i][2]);
-            match_points.push_back(frames[2].match_points_[i][3]);
-            frames[0].match_points_.push_back(match_points);
-        }
-    }
-
-    // 3. 重新三角化
-    frames[0].structure_.clear();
-    triangulate(frames[0].motion_, frames[0].match_points_, frames[0].K_, frames[0].structure_);
-    bundle_adjustment(frames[0], true);
-
-    // 4. 更新 motion
-    CamToRtMatrix(camera_parameter[0], frames[0].motion_[0]);
-    CamToRtMatrix(camera_parameter[1], frames[0].motion_[1]);
-    CamToRtMatrix(camera_parameter[2], frames[0].motion_[2]);
-    CamToRtMatrix(camera_parameter[3], frames[0].motion_[3]);
-
-    // 1. motion 融合
-    frames[0].motion_.push_back(cam_RTs[4]);
-    frames[0].camera_index_.push_back(4);
-    // 2. match point 融合
-    std::unordered_set<int> hash_set2;
-    for (int i = 0; i < frames[0].match_points_.size(); ++i) {
-        bool con_point = false;
-        for (int j = 0; j < frames[3].match_points_.size(); ++j) {
-            double diff_x = frames[0].match_points_[i][6] - frames[3].match_points_[j][0];
-            double diff_y = frames[0].match_points_[i][7] - frames[3].match_points_[j][1];
-            double tmp = sqrt(pow(diff_x, 2.0) + pow(diff_y, 2.0));
-            if (tmp < 0.01) { // 认为是共视点
-                frames[0].match_points_[i].push_back(frames[3].match_points_[j][2]);
-                frames[0].match_points_[i].push_back(frames[3].match_points_[j][3]);
-                hash_set2.emplace(j);
-                con_point = true;
-                break;
-            }
-        }
-        if (!con_point) {
-            frames[0].match_points_[i].push_back(non_pix);
-            frames[0].match_points_[i].push_back(non_pix);
-        }
-    }
-
-    for (int i = 0; i < frames[3].match_points_.size(); ++i) {
-        if(hash_set2.count(i) == 0) {
-            std::vector<double> match_points;
-            match_points.push_back(non_pix);
-            match_points.push_back(non_pix);
-            match_points.push_back(non_pix);
-            match_points.push_back(non_pix);
-            match_points.push_back(non_pix);
-            match_points.push_back(non_pix);
-            match_points.push_back(frames[3].match_points_[i][0]);
-            match_points.push_back(frames[3].match_points_[i][1]);
-            match_points.push_back(frames[3].match_points_[i][2]);
-            match_points.push_back(frames[3].match_points_[i][3]);
-            frames[0].match_points_.push_back(match_points);
-        }
-    }
-
-    // 3. 重新三角化
-    frames[0].structure_.clear();
-    triangulate(frames[0].motion_, frames[0].match_points_, frames[0].K_, frames[0].structure_);
-    bundle_adjustment(frames[0], true);
-
-
-    // 4. 更新 motion
-    CamToRtMatrix(camera_parameter[0], frames[0].motion_[0]);
-    CamToRtMatrix(camera_parameter[1], frames[0].motion_[1]);
-    CamToRtMatrix(camera_parameter[2], frames[0].motion_[2]);
-    CamToRtMatrix(camera_parameter[3], frames[0].motion_[3]);
-
-
-    std::cout << "Frames processed!" << std::endl;
- 
-    /*for (int m = 0; m < N; ++m) {
-        for (int k = 0; k < frames[m].motion_.size(); ++k) {
-            for (int i = 0; i < frames[m].motion_[k].rows(); ++i) {
-                for (int j = 0; j < frames[m].motion_[k].cols(); ++j) {
-                    std::cout << frames[m].motion_[k](i, j) << ", ";
+            std::unordered_set<int> hash_set;
+            for (int i = 0; i < frames[0].match_points_.size(); ++i) {
+                bool con_point = false;
+                for (int j = 0; j < match_points_.size(); ++j) {
+                    double diff_x = frames[0].match_points_[i][2 * index + 0] - match_points_[j][0];
+                    double diff_y = frames[0].match_points_[i][2 * index + 1] - match_points_[j][1];
+                    double tmp = fabs(diff_x) + fabs(diff_y);
+                    if (tmp < 0.01) { 
+                        frames[0].match_points_[i].push_back(match_points_[j][2]);
+                        frames[0].match_points_[i].push_back(match_points_[j][3]);
+                        hash_set.emplace(j);
+                        con_point = true;
+                        break;
+                    }
                 }
-                std::cout << std::endl;
+                if (!con_point) {
+                    frames[0].match_points_[i].push_back(non_pix);
+                    frames[0].match_points_[i].push_back(non_pix);
+                }
             }
-            std::cout << std::endl;  
+            for (int i = 0; i < match_points_.size(); ++i) {
+                if(hash_set.count(i) == 0) {
+                    std::vector<double> match_points;
+                    for (int j = 0; j < index * 2; ++j)
+                        match_points.push_back(non_pix);
+                    match_points.push_back(match_points_[i][0]);
+                    match_points.push_back(match_points_[i][1]);
+                    match_points.push_back(match_points_[i][2]);
+                    match_points.push_back(match_points_[i][3]);
+                    frames[0].match_points_.push_back(match_points);
+                }
+            }
         }
+
+        std::cout << "Set " << index << " processed." << std::endl;
     }
 
-      for (int k = 0; k < cam_RTs.size(); ++k) {
-        for (int i = 0; i < cam_RTs[k].rows(); ++i) {
-            for (int j = 0; j < cam_RTs[k].cols(); ++j) {
-                std::cout << cam_RTs[k](i, j) << ", ";
-            }
-            std::cout << std::endl;
-        }
-        std::cout << std::endl;  
-    }*/
+    std::cout << "Begin to triangulate." << std::endl;
+
+    triangulate(frames[0].motion_, frames[0].match_points_, frames[0].K_, frames[0].structure_);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
     
     cloud->width  = frames[0].structure_.size();
     cloud->height = 1;
@@ -339,14 +236,27 @@ int main(void) {
         index = index + 1;
     }
 
+     pcl::VoxelGrid<pcl::PointXYZ> sor;
+
+     sor.setInputCloud(cloud);
+
+     sor.setLeafSize(0.1f, 0.1f, 0.1f);
+     
+     sor.filter(*cloud_filtered);
+     
+     std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height
+               << " data points (" << pcl::getFieldsList(*cloud_filtered) << ").";
+
+     pcl::io::savePCDFileASCII("output_downsampled.pcd", *cloud_filtered);
+
     std::cout << "Visualization." << std::endl;
 
 	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("Visualizer_Viewer")); 
-	viewer->addPointCloud<pcl::PointXYZ>(cloud, "sample_cloud");		
+	viewer->addPointCloud<pcl::PointXYZ>(cloud_filtered, "cloud_filtered");		
 
-    viewer->setBackgroundColor(0, 0, 0);		//窗口背景色，默认[0,0,0]，范围[0~255,0~255,0~255]
-	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample_cloud");			//设置点的大小，默认 1
-	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 1, 1, "sample_cloud");	//设置点云显示的颜色，rgb 在 [0,1] 范围
+    viewer->setBackgroundColor(0, 0, 0);	
+	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "cloud_filtered");		
+	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 1, 1, "cloud_filtered");	
 
 	while (!viewer->wasStopped())
 	{

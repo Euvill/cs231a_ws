@@ -85,22 +85,6 @@ public:
             
         triangulate(motion_, match_points_, K_, structure_);
 
-        /*for (int k = 0; k < motion_.size(); ++k) {
-            for (int i = 0; i < motion_[k].rows(); ++i) {
-                for (int j = 0; j < motion_[k].cols(); ++j) {
-                    std::cout << motion_[k](i, j) << ", ";
-                }
-                std::cout << std::endl;
-            }
-            std::cout << std::endl;  
-        }
-        std::cout << std::endl; 
-
-        for (int k = 0; k < structure_.size(); ++k) {
-            std::cout << structure_[k][0] << ", " << structure_[k][1] << ", " << structure_[k][2] << std::endl;
-        }
-        std::cout << std::endl;*/
-
         camera_index_.push_back(camera_seq);
         camera_index_.push_back(camera_seq + 1);
     }
@@ -125,5 +109,6 @@ public:
 };
 
 bool bundle_adjustment(Frame& frame, bool show);
+bool merged_frames(std::vector<Frame>& frames, const std::vector<Eigen::Matrix4d>& cam_RTs);
 
 
