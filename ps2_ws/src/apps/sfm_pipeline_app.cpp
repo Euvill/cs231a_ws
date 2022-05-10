@@ -216,6 +216,8 @@ int main(void) {
 
     triangulate(frames[0].motion_, frames[0].match_points_, frames[0].K_, frames[0].structure_);
 
+    std::cout << "Triangulation end." << std::endl;
+
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
     
@@ -236,18 +238,18 @@ int main(void) {
         index = index + 1;
     }
 
-     pcl::VoxelGrid<pcl::PointXYZ> sor;
+    pcl::VoxelGrid<pcl::PointXYZ> sor;
 
-     sor.setInputCloud(cloud);
+    sor.setInputCloud(cloud);
 
-     sor.setLeafSize(0.1f, 0.1f, 0.1f);
+    sor.setLeafSize(0.02f, 0.02f, 0.02f);
      
-     sor.filter(*cloud_filtered);
+    sor.filter(*cloud_filtered);
      
-     std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height
-               << " data points (" << pcl::getFieldsList(*cloud_filtered) << ").";
+    std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height
+              << " data points (" << pcl::getFieldsList(*cloud_filtered) << ")." << std::endl;
 
-     pcl::io::savePCDFileASCII("output_downsampled.pcd", *cloud_filtered);
+    pcl::io::savePCDFileASCII("output_downsampled.pcd", *cloud_filtered);
 
     std::cout << "Visualization." << std::endl;
 
@@ -255,7 +257,7 @@ int main(void) {
 	viewer->addPointCloud<pcl::PointXYZ>(cloud_filtered, "cloud_filtered");		
 
     viewer->setBackgroundColor(0, 0, 0);	
-	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "cloud_filtered");		
+	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,  1, "cloud_filtered");		
 	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 1, 1, "cloud_filtered");	
 
 	while (!viewer->wasStopped())

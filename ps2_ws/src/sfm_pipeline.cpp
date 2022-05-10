@@ -44,7 +44,6 @@ bool triangulate(const std::vector<Eigen::Matrix4d>& motion,
             image_points.block<1, 2>(j, 0) = Eigen::Vector2d(match_points[i][valid_indexes[2 * j]], match_points[i][valid_indexes[2 * j + 1]]).transpose();
         }
 
-
         Eigen::Vector3d estimated_3d_point;
 
         nonlinear_estimate_3d_point(image_points, valid_camera_matrices, estimated_3d_point);
@@ -71,7 +70,7 @@ bool bundle_adjustment(Frame& frame, bool show) {
 
             cost_function = SnavelyReprojectionError::Create(frame.match_points_[j][2 * i + 0], frame.match_points_[j][2 * i + 1]);
 
-            ceres::LossFunction *loss_function = new ceres::HuberLoss(10.0);
+            ceres::LossFunction *loss_function = new ceres::HuberLoss(0.05);
 
             double *camera = camera_parameter[frame.camera_index_[i]].get();
 
@@ -227,18 +226,8 @@ bool merged_frames(std::vector<Frame>& frames, const std::vector<Eigen::Matrix4d
         for (int i = 0; i < index + 2; ++i)
             CamToRtMatrix(camera_parameter[i], frames[0].motion_[i]);
 
-        std::cout << "End to merged the " << index - 1 << ", " << index << " frame..." << std::endl;
+        std::cout << "End to merged the " << index - 1 << ", " << index << " frame." << std::endl;
+        std::cout << std::endl;
     }
-
-        /*for (int k = 0; k < frames[0].motion_.size(); ++k) {
-            for (int i = 0; i < frames[0].motion_[k].rows(); ++i) {
-                for (int j = 0; j < frames[0].motion_[k].cols(); ++j) {
-                    std::cout << frames[0].motion_[k](i, j) << ", ";
-                }
-                std::cout << std::endl;
-            }
-            std::cout << std::endl;  
-        }*/
-
     return true;
 }
