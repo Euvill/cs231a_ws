@@ -19,7 +19,7 @@ public:
         CamProjectionWithDistortion(camera, point, predictions);
         residuals[0] = predictions[0] - T(observed_x);
         residuals[1] = predictions[1] - T(observed_y);
-
+        
         return true;
     }
 

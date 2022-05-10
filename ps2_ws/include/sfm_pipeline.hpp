@@ -13,6 +13,8 @@
 #include "triangulation_alg.hpp"
 #include "SnavelyReprojectionError.h"
 
+const double non_pix = 100000; 
+
 extern std::vector<std::shared_ptr<double>> camera_parameter;
 
 bool triangulate(const std::vector<Eigen::Matrix4d>& motion,

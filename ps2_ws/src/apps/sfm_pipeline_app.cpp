@@ -1,4 +1,5 @@
 #include <iostream>
+#include <unordered_set>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 
@@ -118,77 +119,182 @@ int main(void) {
 
     int N = matches_subset.size();
 
-    int point3d_size = 0;
-
     std::cout << "Begin to process frames ..." << std::endl;
 
     for (int i = 0; i < N; ++i) {
         Frame frame(matches_subset[i], focal_length, fundamental_matrices[i], 480, 640, i);
 
-        point3d_size += frame.structure_.size();
-
-        /*bundle_adjustment(frame, false);
+        bundle_adjustment(frame, false);
 
         CamToRtMatrix(camera_parameter[i], frame.motion_[0]);
-        CamToRtMatrix(camera_parameter[i + 1], frame.motion_[1]);*/
+        CamToRtMatrix(camera_parameter[i + 1], frame.motion_[1]);
 
         frames.push_back(frame);
     }
-    //camera_parameter.clear();
+    camera_parameter.clear();
 
     std::vector<Eigen::Matrix4d> cam_RTs;
-    cam_RTs.push_back(Eigen::Matrix4d::Identity());
+    cam_RTs.push_back(frames[0].motion_[0]);
     for (int i = 0; i < N; ++i) {
         cam_RTs.push_back(cam_RTs[i] * frames[i].motion_[0] * frames[i].motion_[1]);
         RtMatrixToCam(cam_RTs[i], focal_length, 0 , 0);
     }
     RtMatrixToCam(cam_RTs[N], focal_length, 0 , 0);
 
-    for (int i = 0; i < N; ++i) {
-        frames[i].motion_[0] = cam_RTs[i];
-        frames[i].motion_[1] = cam_RTs[i + 1];
-        frames[i].structure_.clear();
-        triangulate(frames[i].motion_, frames[i].match_points_, frames[i].K_, frames[i].structure_);
-    }    
-
-    ceres::Problem problem;
-
-    for (int k = 0; k < frames.size(); ++k) {
-
-        for (int i = 0; i < frames[k].camera_index_.size(); ++i){
-            
-            for (int j = 0; j < frames[k].match_points_.size(); ++j) {
-
-                ceres::CostFunction *cost_function;
-
-                cost_function = SnavelyReprojectionError::Create(frames[k].match_points_[j][2 * i + 0], 
-                                                                 frames[k].match_points_[j][2 * i + 1]);
-
-                ceres::LossFunction *loss_function = new ceres::HuberLoss(1.0);
-
-                double *camera = camera_parameter[frames[k].camera_index_[i]].get();
-
-                double *point3d = new double[3];
-                memcpy(point3d, &frames[k].structure_[j][0], 3 * sizeof(double));
-
-                problem.AddResidualBlock(cost_function, loss_function, camera, point3d);
+    // 1. motion 融合
+    frames[0].motion_[0] = cam_RTs[0];
+    frames[0].motion_[1] = cam_RTs[1];
+    frames[0].motion_.push_back(cam_RTs[2]);
+    frames[0].camera_index_.push_back(2);
+    // 2. match point 融合
+    std::unordered_set<int> hash_set;
+    for (int i = 0; i < frames[0].match_points_.size(); ++i) {
+        bool con_point = false;
+        for (int j = 0; j < frames[1].match_points_.size(); ++j) {
+            double diff_x = frames[0].match_points_[i][2] - frames[1].match_points_[j][0];
+            double diff_y = frames[0].match_points_[i][3] - frames[1].match_points_[j][1];
+            double tmp = sqrt(pow(diff_x, 2.0) + pow(diff_y, 2.0));
+            if (tmp < 0.01) { // 认为是共视点
+                frames[0].match_points_[i].push_back(frames[1].match_points_[j][2]);
+                frames[0].match_points_[i].push_back(frames[1].match_points_[j][3]);
+                hash_set.emplace(j);
+                con_point = true;
+                break;
             }
+        }
+        if (!con_point) {
+            frames[0].match_points_[i].push_back(non_pix);
+            frames[0].match_points_[i].push_back(non_pix);
+        }
+    }
+    for (int i = 0; i < frames[1].match_points_.size(); ++i) {
+        if(hash_set.count(i) == 0) {
+            std::vector<double> match_points;
+            match_points.push_back(non_pix);
+            match_points.push_back(non_pix);
+            match_points.push_back(frames[1].match_points_[i][0]);
+            match_points.push_back(frames[1].match_points_[i][1]);
+            match_points.push_back(frames[1].match_points_[i][2]);
+            match_points.push_back(frames[1].match_points_[i][3]);
+            frames[0].match_points_.push_back(match_points);
+        }
+    }
+    // 3. 重新三角化
+    frames[0].structure_.clear();
+    triangulate(frames[0].motion_, frames[0].match_points_, frames[0].K_, frames[0].structure_);
+   
+    bundle_adjustment(frames[0], true);
+    // 4. 更新 motion
+    CamToRtMatrix(camera_parameter[0], frames[0].motion_[0]);
+    CamToRtMatrix(camera_parameter[1], frames[0].motion_[1]);
+    CamToRtMatrix(camera_parameter[2], frames[0].motion_[2]);
+
+
+    // 1. motion 融合
+    frames[0].motion_.push_back(cam_RTs[3]);
+    frames[0].camera_index_.push_back(3);
+    // 2. match point 融合
+    std::unordered_set<int> hash_set1;
+    for (int i = 0; i < frames[0].match_points_.size(); ++i) {
+        bool con_point = false;
+        for (int j = 0; j < frames[2].match_points_.size(); ++j) {
+            double diff_x = frames[0].match_points_[i][4] - frames[2].match_points_[j][0];
+            double diff_y = frames[0].match_points_[i][5] - frames[2].match_points_[j][1];
+            double tmp = sqrt(pow(diff_x, 2.0) + pow(diff_y, 2.0));
+            if (tmp < 0.01) { // 认为是共视点
+                frames[0].match_points_[i].push_back(frames[2].match_points_[j][2]);
+                frames[0].match_points_[i].push_back(frames[2].match_points_[j][3]);
+                hash_set1.emplace(j);
+                con_point = true;
+                break;
+            }
+        }
+        if (!con_point) {
+            frames[0].match_points_[i].push_back(non_pix);
+            frames[0].match_points_[i].push_back(non_pix);
         }
     }
 
-    ceres::Solver::Options options;
-    options.logging_type = ceres::SILENT;
-    
-    options.linear_solver_type = ceres::LinearSolverType::SPARSE_SCHUR;
-    options.minimizer_progress_to_stdout = true;
-    ceres::Solver::Summary summary;
-    ceres::Solve(options, &problem, &summary);
-    std::cout << summary.FullReport() << "\n"; 
-    
-    for (int m = 0; m < N; ++m) {
-        CamToRtMatrix(camera_parameter[m],   frames[m].motion_[0]);
-        CamToRtMatrix(camera_parameter[m+1], frames[m].motion_[1]);
+    for (int i = 0; i < frames[2].match_points_.size(); ++i) {
+        if(hash_set1.count(i) == 0) {
+            std::vector<double> match_points;
+            match_points.push_back(non_pix);
+            match_points.push_back(non_pix);
+            match_points.push_back(non_pix);
+            match_points.push_back(non_pix);
+            match_points.push_back(frames[2].match_points_[i][0]);
+            match_points.push_back(frames[2].match_points_[i][1]);
+            match_points.push_back(frames[2].match_points_[i][2]);
+            match_points.push_back(frames[2].match_points_[i][3]);
+            frames[0].match_points_.push_back(match_points);
+        }
     }
+
+    // 3. 重新三角化
+    frames[0].structure_.clear();
+    triangulate(frames[0].motion_, frames[0].match_points_, frames[0].K_, frames[0].structure_);
+    bundle_adjustment(frames[0], true);
+
+    // 4. 更新 motion
+    CamToRtMatrix(camera_parameter[0], frames[0].motion_[0]);
+    CamToRtMatrix(camera_parameter[1], frames[0].motion_[1]);
+    CamToRtMatrix(camera_parameter[2], frames[0].motion_[2]);
+    CamToRtMatrix(camera_parameter[3], frames[0].motion_[3]);
+
+    // 1. motion 融合
+    frames[0].motion_.push_back(cam_RTs[4]);
+    frames[0].camera_index_.push_back(4);
+    // 2. match point 融合
+    std::unordered_set<int> hash_set2;
+    for (int i = 0; i < frames[0].match_points_.size(); ++i) {
+        bool con_point = false;
+        for (int j = 0; j < frames[3].match_points_.size(); ++j) {
+            double diff_x = frames[0].match_points_[i][6] - frames[3].match_points_[j][0];
+            double diff_y = frames[0].match_points_[i][7] - frames[3].match_points_[j][1];
+            double tmp = sqrt(pow(diff_x, 2.0) + pow(diff_y, 2.0));
+            if (tmp < 0.01) { // 认为是共视点
+                frames[0].match_points_[i].push_back(frames[3].match_points_[j][2]);
+                frames[0].match_points_[i].push_back(frames[3].match_points_[j][3]);
+                hash_set2.emplace(j);
+                con_point = true;
+                break;
+            }
+        }
+        if (!con_point) {
+            frames[0].match_points_[i].push_back(non_pix);
+            frames[0].match_points_[i].push_back(non_pix);
+        }
+    }
+
+    for (int i = 0; i < frames[3].match_points_.size(); ++i) {
+        if(hash_set2.count(i) == 0) {
+            std::vector<double> match_points;
+            match_points.push_back(non_pix);
+            match_points.push_back(non_pix);
+            match_points.push_back(non_pix);
+            match_points.push_back(non_pix);
+            match_points.push_back(non_pix);
+            match_points.push_back(non_pix);
+            match_points.push_back(frames[3].match_points_[i][0]);
+            match_points.push_back(frames[3].match_points_[i][1]);
+            match_points.push_back(frames[3].match_points_[i][2]);
+            match_points.push_back(frames[3].match_points_[i][3]);
+            frames[0].match_points_.push_back(match_points);
+        }
+    }
+
+    // 3. 重新三角化
+    frames[0].structure_.clear();
+    triangulate(frames[0].motion_, frames[0].match_points_, frames[0].K_, frames[0].structure_);
+    bundle_adjustment(frames[0], true);
+
+
+    // 4. 更新 motion
+    CamToRtMatrix(camera_parameter[0], frames[0].motion_[0]);
+    CamToRtMatrix(camera_parameter[1], frames[0].motion_[1]);
+    CamToRtMatrix(camera_parameter[2], frames[0].motion_[2]);
+    CamToRtMatrix(camera_parameter[3], frames[0].motion_[3]);
+
 
     std::cout << "Frames processed!" << std::endl;
  
@@ -216,28 +322,21 @@ int main(void) {
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
     
-    cloud->width  = point3d_size;
+    cloud->width  = frames[0].structure_.size();
     cloud->height = 1;
     cloud->points.resize(cloud->width * cloud->height);
 
-    std::cout << "point3d_size: " << point3d_size << std::endl;
+    std::cout << "point3d_size: " << frames[0].structure_.size() << std::endl;
 
     int index = 0;
+   
+    for (int j = 0; j < frames[0].structure_.size(); ++j) {
 
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < frames[i].structure_.size(); ++j) {
+        cloud->points[index].x = frames[0].structure_[j][0];
+        cloud->points[index].y = frames[0].structure_[j][1];
+        cloud->points[index].z = frames[0].structure_[j][2];
 
-            cloud->points[index].x = frames[i].structure_[j][0];
-            cloud->points[index].y = frames[i].structure_[j][1];
-            cloud->points[index].z = frames[i].structure_[j][2];
-
-            std::cout << index << ", "
-                      << cloud->points[index].x << ", "
-                      << cloud->points[index].y << ", "
-                      << cloud->points[index].z << std::endl;
-
-            index = index + 1;
-        }
+        index = index + 1;
     }
 
     std::cout << "Visualization." << std::endl;
