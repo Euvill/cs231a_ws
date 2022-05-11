@@ -182,7 +182,7 @@ int main(void) {
                     double diff_x = frames[0].match_points_[i][2 * index + 0] - match_points_[j][0];
                     double diff_y = frames[0].match_points_[i][2 * index + 1] - match_points_[j][1];
                     double tmp = fabs(diff_x) + fabs(diff_y);
-                    if (tmp < 0.01) { 
+                    if (tmp < 0.1) { 
                         frames[0].match_points_[i].push_back(match_points_[j][2]);
                         frames[0].match_points_[i].push_back(match_points_[j][3]);
                         hash_set.emplace(j);
@@ -225,8 +225,6 @@ int main(void) {
     cloud->height = 1;
     cloud->points.resize(cloud->width * cloud->height);
 
-    std::cout << "point3d_size: " << frames[0].structure_.size() << std::endl;
-
     int index = 0;
    
     for (int j = 0; j < frames[0].structure_.size(); ++j) {
@@ -242,7 +240,7 @@ int main(void) {
 
     sor.setInputCloud(cloud);
 
-    sor.setLeafSize(0.02f, 0.02f, 0.02f);
+    sor.setLeafSize(0.01f, 0.01f, 0.01f);
      
     sor.filter(*cloud_filtered);
      
@@ -257,7 +255,7 @@ int main(void) {
 	viewer->addPointCloud<pcl::PointXYZ>(cloud_filtered, "cloud_filtered");		
 
     viewer->setBackgroundColor(0, 0, 0);	
-	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,  1, "cloud_filtered");		
+	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,  2, "cloud_filtered");		
 	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 1, 1, "cloud_filtered");	
 
 	while (!viewer->wasStopped())

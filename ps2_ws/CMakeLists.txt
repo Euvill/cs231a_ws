@@ -49,3 +49,6 @@ target_link_libraries(triangulation ${ALL_TARGET_LIBRARIES})
 add_executable(sfm_pipeline src/apps/sfm_pipeline_app.cpp ${ALL_SRCS})
 target_link_libraries(sfm_pipeline ${ALL_TARGET_LIBRARIES})
 
+add_executable(cloud_filter src/apps/cloud_filter_app.cpp ${ALL_SRCS})
+target_link_libraries(cloud_filter ${ALL_TARGET_LIBRARIES})
+

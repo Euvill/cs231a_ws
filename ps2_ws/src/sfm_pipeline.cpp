@@ -70,7 +70,7 @@ bool bundle_adjustment(Frame& frame, bool show) {
 
             cost_function = SnavelyReprojectionError::Create(frame.match_points_[j][2 * i + 0], frame.match_points_[j][2 * i + 1]);
 
-            ceres::LossFunction *loss_function = new ceres::HuberLoss(0.05);
+            ceres::LossFunction *loss_function = new ceres::HuberLoss(1.0);
 
             double *camera = camera_parameter[frame.camera_index_[i]].get();
 
@@ -192,7 +192,7 @@ bool merged_frames(std::vector<Frame>& frames, const std::vector<Eigen::Matrix4d
                 double diff_x = frames[0].match_points_[i][2 * index + 0] - frames[index].match_points_[j][0];
                 double diff_y = frames[0].match_points_[i][2 * index + 1] - frames[index].match_points_[j][1];
                 double tmp = fabs(diff_x) + fabs(diff_y);
-                if (tmp < 0.01) { 
+                if (tmp < 0.1) { 
                     frames[0].match_points_[i].push_back(frames[index].match_points_[j][2]);
                     frames[0].match_points_[i].push_back(frames[index].match_points_[j][3]);
                     hash_set.emplace(j);
